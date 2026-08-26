@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "@type": "RemoteShellExecutor",
+    "name": "railway-agent",
+    "enabled": true,
+    "jobMatch": "\"Project\" is \"**\"",
+    "agentQuery": null,
+    "concurrency": null,
+    "sitePublishEnabled": false,
+    "htmlReportPublishEnabled": false
+  }
+]

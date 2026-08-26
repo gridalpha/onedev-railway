@@ -124,11 +124,11 @@ seed_job_executor() {
 post_boot() {
 	local i
 	for i in $(seq 1 240); do
-		curl -fsS -o /dev/null --max-time 5 "$LOCAL_URL/readyz" && break
+		curl -fsS -o /dev/null --max-time 5 "$LOCAL_URL/readyz" 2>/dev/null && break
 		sleep 5
 	done
 
-	if ! curl -fsS -o /dev/null --max-time 5 "$LOCAL_URL/readyz"; then
+	if ! curl -fsS -o /dev/null --max-time 5 "$LOCAL_URL/readyz" 2>/dev/null; then
 		log "server never reported ready; skipping post-boot configuration"
 		return 0
 	fi

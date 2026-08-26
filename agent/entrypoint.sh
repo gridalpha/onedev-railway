@@ -85,7 +85,14 @@ serve_probe() {
 	done
 }
 
-: "${serverUrl:?serverUrl must be set to the OneDev server URL}"
+# A `${{onedev.RAILWAY_PRIVATE_DOMAIN}}` reference renders empty until that
+# service owns a deployment, and in a template every service deploys for the
+# first time at once — so an unrepaired reference bakes `http://:6610` as the
+# server URL and the agent never connects. Private hostnames are deterministic,
+# so repair it on the value's shape.
+case "$serverUrl" in
+	''|http://:*|https://:*) serverUrl="http://${ONEDEV_SERVER_HOST:-onedev.railway.internal}:6610" ;;
+esac
 serverUrl="${serverUrl%/}"
 export serverUrl
 

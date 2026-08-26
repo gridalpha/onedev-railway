@@ -96,6 +96,9 @@ sync_ssh_root_url() {
 }
 
 seed_job_executor() {
+	# The agent reports the *host's* core count (48 on Railway), and a shell
+	# executor with no concurrency set takes that as its job limit — so the
+	# shipped executor pins it to a number the container's 8 vCPU can serve.
 	[ -e "$MARKER_DIR/job-executor-seeded" ] && return 0
 
 	local wanted existing

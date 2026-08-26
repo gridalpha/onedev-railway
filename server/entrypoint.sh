@@ -60,6 +60,41 @@ close_self_signup() {
 	fi
 }
 
+sync_ssh_root_url() {
+	# Git over SSH is published with a Railway TCP proxy, whose hostname and port
+	# are only knowable at runtime and change if the proxy is recreated. Resolve
+	# them from the injected environment on every boot, but remember what we
+	# wrote so an operator who sets their own SSH root URL is never overruled.
+	[ -n "$RAILWAY_TCP_PROXY_DOMAIN" ] && [ -n "$RAILWAY_TCP_PROXY_PORT" ] || return 0
+
+	local wanted stamp current
+	wanted="ssh://$RAILWAY_TCP_PROXY_DOMAIN:$RAILWAY_TCP_PROXY_PORT"
+	stamp="$MARKER_DIR/ssh-root-url"
+
+	current=$(api GET /~api/settings/system) || {
+		log "WARNING: could not read system setting; SSH root URL left as is"
+		return 0
+	}
+
+	local stored
+	stored=$(printf '%s' "$current" | jq -r '.sshRootUrl // ""')
+	[ "$stored" = "$wanted" ] && { printf '%s' "$wanted" > "$stamp"; return 0; }
+
+	if [ -n "$stored" ] && [ -e "$stamp" ] && [ "$stored" != "$(cat "$stamp")" ]; then
+		log "SSH root URL was changed by an operator; leaving it alone"
+		return 0
+	fi
+
+	local updated
+	updated=$(printf '%s' "$current" | jq -c --arg u "$wanted" '.sshRootUrl = $u')
+	if api POST /~api/settings/system "$updated" >/dev/null; then
+		printf '%s' "$wanted" > "$stamp"
+		log "SSH root URL set to $wanted"
+	else
+		log "WARNING: could not set SSH root URL"
+	fi
+}
+
 seed_job_executor() {
 	[ -e "$MARKER_DIR/job-executor-seeded" ] && return 0
 
@@ -105,6 +140,7 @@ post_boot() {
 
 	mkdir -p "$MARKER_DIR"
 	close_self_signup
+	sync_ssh_root_url
 	seed_job_executor
 }
 
